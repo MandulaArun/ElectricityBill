@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Blockchain Electricity Billing System</title>
+<style>
+:root {
+  --bg:#f0f4f8; --surface:#fff; --border:#e0e0e0;
+  --text:#1a1a2e; --muted:#666;
+  --blue:#185FA5; --green:#0F6E56; --amber:#854F0B; --red:#991F1F;
+  --blue-lt:#E6F1FB; --green-lt:#EAF3DE; --amber-lt:#FAEEDA; --red-lt:#FCEBEB;
+}
+[data-theme="dark"] {
+  --bg:#0f1117; --surface:#1a1d27; --border:#2a2d3a;
+  --text:#e8e8f0; --muted:#8888aa;
+  --blue-lt:#0d2a4a; --green-lt:#0a2a1f; --amber-lt:#2a1a06; --red-lt:#2a0a0a;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:Arial,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+
+header{background:#185FA5;color:white;padding:14px 28px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.2);}
+.logo h1{font-size:16px;font-weight:600;}
+.logo small{font-size:10px;opacity:.6;}
+.hdr-right{display:flex;gap:10px;align-items:center;}
+.chain-badge{padding:5px 12px;border-radius:16px;font-size:11px;font-weight:600;cursor:pointer;}
+.badge-ok{background:rgba(15,110,86,.3);color:#5DCAA5;}
+.badge-bad{background:rgba(153,31,31,.3);color:#F09595;animation:blink .9s infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
+.dark-btn{background:rgba(255,255,255,.12);border:none;color:white;padding:6px 12px;border-radius:14px;font-size:11px;cursor:pointer;}
+
+.tabs{display:flex;background:var(--surface);border-bottom:1px solid var(--border);padding:0 28px;overflow-x:auto;}
+.tab{padding:12px 16px;font-size:13px;cursor:pointer;border-bottom:2.5px solid transparent;color:var(--muted);font-weight:500;white-space:nowrap;}
+.tab.active{border-bottom-color:var(--blue);color:var(--blue);}
+
+.panel{display:none;max-width:1000px;margin:22px auto;padding:0 18px;}
+.panel.active{display:block;}
+
+/* STATS */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px;}
+@media(max-width:600px){.stats-grid{grid-template-columns:1fr 1fr;}.grid2{grid-template-columns:1fr!important;}}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 18px;}
+.stat-n{font-size:24px;font-weight:700;}
+.stat-l{font-size:11px;color:var(--muted);margin-top:3px;}
+.c-blue{color:var(--blue);} .c-green{color:var(--green);} .c-amber{color:#BA7517;} .c-red{color:var(--red);}
+
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px 22px;}
+.card h2{font-size:13px;font-weight:600;color:var(--blue);margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border);}
+
+label{display:block;font-size:11px;color:var(--muted);margin:10px 0 4px;}
+input,select{width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;outline:none;background:var(--bg);color:var(--text);}
+input:focus{border-color:var(--blue);}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+
+.btn{width:100%;padding:10px;margin-top:12px;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;}
+.btn:hover{opacity:.88;} .btn:active{transform:scale(.98);}
+.btn-blue{background:var(--blue);color:#fff;} .btn-green{background:var(--green);color:#fff;}
+.btn-amber{background:var(--amber);color:#fff;} .btn-red{background:var(--red);color:#fff;}
+.btn-outline{background:transparent;border:1.5px solid var(--border);color:var(--text);}
+
+.alert{display:none;margin-top:10px;padding:10px 12px;border-radius:8px;font-size:12px;line-height:1.5;}
+.alert.show{display:block;}
+.alert.ok{background:var(--green-lt);color:var(--green);border-left:3px solid var(--green);}
+.alert.err{background:var(--red-lt);color:var(--red);border-left:3px solid var(--red);}
+
+.result-box{display:none;margin-top:12px;border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+.result-box.show{display:block;}
+.rrow{display:flex;justify-content:space-between;padding:8px 14px;font-size:12px;border-bottom:1px solid var(--border);}
+.rrow:last-child{border-bottom:none;}
+.rlbl{color:var(--muted);} .rval{font-weight:600;}
+.paid-y{color:var(--green);} .paid-n{color:var(--red);}
+
+.slab-tbl{width:100%;border-collapse:collapse;font-size:12px;}
+.slab-tbl th{background:var(--blue-lt);color:var(--blue);padding:6px 10px;text-align:left;}
+.slab-tbl td{padding:6px 10px;border-bottom:1px solid var(--border);}
+
+.mine-bar{display:none;margin-top:10px;}
+.mine-bar.show{display:block;}
+.mine-track{height:6px;background:var(--border);border-radius:3px;overflow:hidden;}
+.mine-fill{height:100%;background:var(--blue);border-radius:3px;animation:mine 1.4s ease-in-out infinite;}
+@keyframes mine{0%{width:0%}70%{width:85%}100%{width:100%}}
+.mine-txt{font-size:11px;color:var(--muted);margin-top:4px;}
+
+.chart-wrap{position:relative;height:190px;}
+
+/* consumers table */
+.ctbl{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px;}
+.ctbl th{background:var(--blue-lt);color:var(--blue);padding:7px 10px;text-align:left;font-size:11px;}
+.ctbl td{padding:8px 10px;border-bottom:1px solid var(--border);}
+
+/* blocks */
+.block-wrap{margin-bottom:8px;animation:slideIn .3s ease;}
+@keyframes slideIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+.block-item{border:1px solid var(--border);border-radius:10px;padding:12px 14px;background:var(--surface);}
+.block-item.genesis{border-left:4px solid var(--blue);}
+.block-item.reading{border-left:4px solid var(--green);}
+.block-item.payment{border-left:4px solid #BA7517;}
+.block-item.tampered{border-left:4px solid var(--red);background:var(--red-lt);}
+.bh{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+.bnum{font-weight:600;font-size:13px;}
+.bpill{padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;}
+.pg{background:var(--blue-lt);color:var(--blue);}
+.pr{background:var(--green-lt);color:var(--green);}
+.pp{background:var(--amber-lt);color:var(--amber);}
+.pt{background:var(--red-lt);color:var(--red);}
+.hashline{font-family:monospace;font-size:10px;color:var(--muted);word-break:break-all;margin-top:3px;}
+.nonce{font-size:10px;background:var(--blue-lt);color:var(--blue);padding:2px 7px;border-radius:8px;}
+.arrow-down{text-align:center;font-size:18px;color:var(--muted);margin:0;}
+
+.banner{padding:10px 14px;border-radius:8px;font-size:13px;font-weight:600;margin-bottom:14px;text-align:center;}
+.banner-ok{background:var(--green-lt);color:var(--green);}
+.banner-bad{background:var(--red-lt);color:var(--red);animation:blink .9s infinite;}
+
+.tamper-box{background:var(--red-lt);border:1px solid #F09595;border-radius:10px;padding:14px;margin-bottom:12px;}
+.tamper-box p{font-size:12px;color:var(--red);line-height:1.6;}
+
+/* breakdown */
+.breakdown-box{display:none;margin-top:12px;border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.breakdown-box.show{display:block;}
+
+/* print */
+@media print{body>*:not(#parea){display:none!important;}#parea{display:block!important;padding:40px;}}
+#parea{display:none;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <h1>&#9889; Blockchain Electricity Billing</h1>
+    <small>Decentralized · Tamper-proof · Automated</small>
+  </div>
+  <div class="hdr-right">
+    <span id="chain-badge" class="chain-badge badge-ok" onclick="switchTab('chain')">&#10003; Chain Valid</span>
+    <button class="dark-btn" onclick="toggleDark()">&#9790; Dark</button>
+  </div>
+</header>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('dashboard')">&#128202; Dashboard</div>
+  <div class="tab" onclick="switchTab('billing')">&#128260; Billing</div>
+  <div class="tab" onclick="switchTab('pay')">&#128179; Pay Bill</div>
+  <div class="tab" onclick="switchTab('chain')">&#128279; Blockchain</div>
+  <div class="tab" onclick="switchTab('demo')">&#9888; Tamper Demo</div>
+</div>
+
+<!-- ═══ DASHBOARD ═══ -->
+<div class="panel active" id="tab-dashboard">
+
+  <div class="stats-grid">
+    <div class="stat-card"><div class="stat-n c-blue" id="s-blocks">1</div><div class="stat-l">Blocks Mined</div></div>
+    <div class="stat-card"><div class="stat-n c-green" id="s-rev">Rs.0</div><div class="stat-l">Revenue Collected</div></div>
+    <div class="stat-card"><div class="stat-n c-amber" id="s-pend">Rs.0</div><div class="stat-l">Pending Amount</div></div>
+    <div class="stat-card"><div class="stat-n c-red" id="s-unp">0</div><div class="stat-l">Unpaid Bills</div></div>
+  </div>
+
+  <div class="grid2" style="margin-bottom:14px;">
+    <div class="card">
+      <h2>Bill Status</h2>
+      <div class="chart-wrap">
+        <canvas id="pieCanvas"></canvas>
+      </div>
+      <div id="pie-empty" style="text-align:center;font-size:12px;color:var(--muted);padding:20px;display:none;">No data yet — add a consumer in Billing tab</div>
+    </div>
+    <div class="card">
+      <h2>Consumption per Consumer (kWh)</h2>
+      <div class="chart-wrap">
+        <canvas id="barCanvas"></canvas>
+      </div>
+      <div id="bar-empty" style="text-align:center;font-size:12px;color:var(--muted);padding:20px;display:none;">No data yet — add a consumer in Billing tab</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>All Consumers</h2>
+    <div id="cons-tbl"><p style="font-size:13px;color:var(--muted);">No consumers added yet. Go to the Billing tab.</p></div>
+  </div>
+</div>
+
+<!-- ═══ BILLING ═══ -->
+<div class="panel" id="tab-billing">
+  <div class="grid2">
+    <div class="card">
+      <h2>&#128260; Add Meter Reading</h2>
+      <div class="row2">
+        <div><label>Consumer ID</label><input id="r-id" placeholder="e.g. C001"/></div>
+        <div><label>Month</label><input id="r-month" placeholder="e.g. April 2025"/></div>
+      </div>
+      <label>Consumer Name</label><input id="r-name" placeholder="e.g. Ravi Kumar"/>
+      <label>Home Address</label><input id="r-addr" placeholder="e.g. 12 Gandhi Nagar, Chennai"/>
+      <label>Units Consumed (kWh)</label><input id="r-units" type="number" placeholder="e.g. 250"/>
+
+      <div class="mine-bar" id="mine-bar">
+        <div class="mine-track"><div class="mine-fill"></div></div>
+        <div class="mine-txt">Mining block... finding valid hash with Proof of Work...</div>
+      </div>
+
+      <button class="btn btn-blue" onclick="addReading()">&#9889; Submit &amp; Mine Block</button>
+      <div class="alert" id="r-alert"></div>
+
+      <div class="breakdown-box" id="bkdown-box">
+        <div style="font-size:12px;font-weight:600;color:var(--blue);padding:10px 12px;border-bottom:1px solid var(--border);">Bill Breakdown (Slab Tariff)</div>
+        <table class="slab-tbl">
+          <thead><tr><th>Units in Slab</th><th>Rate (Rs./kWh)</th><th>Amount (Rs.)</th></tr></thead>
+          <tbody id="bkdown-body"></tbody>
+          <tfoot><tr><td colspan="2" style="padding:7px 10px;font-weight:600;">Total</td><td id="bkdown-total" style="padding:7px 10px;font-weight:700;color:var(--green);"></td></tr></tfoot>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>&#128198; Tariff Slabs</h2>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:12px;">Real-world slab-based pricing used by Indian utilities</p>
+      <table class="slab-tbl">
+        <thead><tr><th>Units Range</th><th>Rate (Rs./kWh)</th><th>Example Cost</th></tr></thead>
+        <tbody>
+          <tr><td>0 – 100 units</td><td>Rs. 3</td><td>100 × 3 = Rs. 300</td></tr>
+          <tr><td>101 – 300 units</td><td>Rs. 5</td><td>200 × 5 = Rs. 1,000</td></tr>
+          <tr><td>Above 300 units</td><td>Rs. 7</td><td>50 × 7 = Rs. 350</td></tr>
+        </tbody>
+      </table>
+
+      <div style="margin-top:20px;">
+        <div style="font-size:12px;font-weight:600;color:var(--blue);margin-bottom:8px;">Consumer Billing History</div>
+        <input id="hist-id" placeholder="Enter Consumer ID (e.g. C001)"/>
+        <button class="btn btn-outline" style="margin-top:8px;" onclick="loadHistory()">&#128202; Load History</button>
+        <div id="hist-out" style="margin-top:10px;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PAY BILL ═══ -->
+<div class="panel" id="tab-pay">
+  <div class="grid2">
+    <div class="card">
+      <h2>&#128179; View &amp; Pay Bill</h2>
+      <label>Consumer ID</label>
+      <input id="p-id" placeholder="e.g. C001"/>
+      <button class="btn btn-amber" onclick="viewBill()">View My Bill</button>
+
+      <div class="result-box" id="bill-box">
+        <div class="rrow"><span class="rlbl">Name</span><span class="rval" id="b-name">-</span></div>
+        <div class="rrow"><span class="rlbl">Address</span><span class="rval" id="b-addr">-</span></div>
+        <div class="rrow"><span class="rlbl">Month</span><span class="rval" id="b-month">-</span></div>
+        <div class="rrow"><span class="rlbl">Units Consumed</span><span class="rval" id="b-units">-</span></div>
+        <div class="rrow"><span class="rlbl">Amount Due</span><span class="rval" id="b-amt">-</span></div>
+        <div class="rrow"><span class="rlbl">Status</span><span class="rval" id="b-status">-</span></div>
+      </div>
+
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-green" style="flex:1;" onclick="payBill()">&#10003; Pay Bill</button>
+        <button class="btn btn-outline" style="flex:1;margin-top:12px;" onclick="printBill()">&#128438; Print Bill</button>
+      </div>
+      <div class="alert" id="p-alert"></div>
+    </div>
+
+    <div class="card">
+      <h2>&#128270; Check Any Consumer</h2>
+      <label>Enter Consumer ID to look up</label>
+      <input id="ck-id" placeholder="e.g. C002"/>
+      <button class="btn btn-blue" onclick="checkConsumer()">Lookup Bill</button>
+      <div class="result-box" id="ck-box">
+        <div class="rrow"><span class="rlbl">Name</span><span class="rval" id="ck-name">-</span></div>
+        <div class="rrow"><span class="rlbl">Units</span><span class="rval" id="ck-units">-</span></div>
+        <div class="rrow"><span class="rlbl">Amount Due</span><span class="rval" id="ck-amt">-</span></div>
+        <div class="rrow"><span class="rlbl">Month</span><span class="rval" id="ck-month">-</span></div>
+        <div class="rrow"><span class="rlbl">Status</span><span class="rval" id="ck-status">-</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ BLOCKCHAIN ═══ -->
+<div class="panel" id="tab-chain">
+  <div class="card" style="margin-bottom:14px;padding:14px 20px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <span style="font-size:13px;font-weight:600;color:var(--blue);">&#128279; Live Blockchain Ledger</span>
+      <button class="btn btn-outline" style="width:auto;padding:7px 16px;margin-top:0;" onclick="loadChain('chain-view')">&#8635; Refresh</button>
+    </div>
+  </div>
+  <div id="chain-view"><p style="text-align:center;color:var(--muted);font-size:13px;padding:40px;">Click Refresh to load the blockchain</p></div>
+</div>
+
+<!-- ═══ TAMPER DEMO ═══ -->
+<div class="panel" id="tab-demo">
+  <div class="grid2">
+    <div class="card">
+      <h2>&#128272; Tamper Simulation</h2>
+      <div class="tamper-box">
+        <p>This simulates a hacker secretly changing a block's data WITHOUT recalculating the hash. The chain instantly detects it — this is the core security of blockchain.</p>
+      </div>
+      <label>Block Index to Tamper (must be 1 or higher)</label>
+      <input id="t-idx" type="number" value="1" style="border-color:var(--red);"/>
+      <label>Replace Units With (fake low value)</label>
+      <input id="t-units" type="number" value="5" placeholder="e.g. 5"/>
+      <button class="btn btn-red" onclick="tamperChain()">&#9888; Tamper a Block</button>
+      <div class="alert" id="t-alert"></div>
+      <button class="btn btn-outline" style="margin-top:8px;" onclick="validateChain()">&#10003; Validate Chain Now</button>
+      <div class="alert" id="v-alert"></div>
+    </div>
+
+    <div class="card">
+      <h2>&#128218; How It Works</h2>
+      <div style="font-size:13px;line-height:1.9;color:var(--text);">
+        <p style="margin-bottom:10px;">Each block's hash is calculated from ALL its contents — data, timestamp, nonce, and the previous block's hash.</p>
+        <p style="margin-bottom:10px;">When you tamper with Block #1's data, its stored hash no longer matches what Python calculates. This mismatch is detected instantly.</p>
+        <p style="margin-bottom:10px;">Also, Block #2's <code style="font-size:11px;background:var(--bg);padding:1px 5px;border-radius:4px;">previous_hash</code> now points to a non-existent hash — breaking the chain link.</p>
+        <p style="color:var(--green);font-weight:600;">Changing any one block breaks every block after it. This is why blockchain cannot be tampered with.</p>
+      </div>
+    </div>
+  </div>
+  <div class="card" style="margin-top:14px;">
+    <h2>&#128270; Chain State After Tampering</h2>
+    <div id="demo-view"><p style="color:var(--muted);font-size:13px;">Tamper a block above, then validate to see the broken chain highlighted here.</p></div>
+  </div>
+</div>
+
+<!-- PRINT AREA -->
+<div id="parea">
+  <div style="text-align:center;margin-bottom:24px;">
+    <h2 style="color:#185FA5;font-size:22px;">Electricity Bill</h2>
+    <p style="font-size:12px;color:#888;">Blockchain Verified · Tamper-proof</p>
+  </div>
+  <table style="width:100%;border-collapse:collapse;font-size:14px;">
+    <tr><td style="padding:9px;border-bottom:1px solid #eee;color:#666;width:40%;">Consumer Name</td><td id="pr-name" style="padding:9px;border-bottom:1px solid #eee;font-weight:600;"></td></tr>
+    <tr><td style="padding:9px;border-bottom:1px solid #eee;color:#666;">Address</td><td id="pr-addr" style="padding:9px;border-bottom:1px solid #eee;"></td></tr>
+    <tr><td style="padding:9px;border-bottom:1px solid #eee;color:#666;">Billing Month</td><td id="pr-month" style="padding:9px;border-bottom:1px solid #eee;"></td></tr>
+    <tr><td style="padding:9px;border-bottom:1px solid #eee;color:#666;">Units Consumed</td><td id="pr-units" style="padding:9px;border-bottom:1px solid #eee;"></td></tr>
+    <tr><td style="padding:9px;border-bottom:1px solid #eee;color:#666;">Total Amount</td><td id="pr-amt" style="padding:9px;border-bottom:1px solid #eee;font-weight:700;font-size:18px;color:#0F6E56;"></td></tr>
+    <tr><td style="padding:9px;color:#666;">Payment Status</td><td id="pr-status" style="padding:9px;font-weight:700;"></td></tr>
+  </table>
+  <div style="margin-top:20px;padding:12px;background:#f8f8f8;border-radius:8px;">
+    <div style="font-size:11px;color:#666;margin-bottom:4px;">Blockchain Hash (Proof of Record):</div>
+    <div id="pr-hash" style="font-family:monospace;font-size:10px;word-break:break-all;color:#333;"></div>
+  </div>
+  <p style="text-align:center;font-size:10px;color:#aaa;margin-top:16px;">Generated by Blockchain Electricity Billing System</p>
+</div>
+
+<!-- Load Chart.js from CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+// ── helpers ──────────────────────────────────────────────
+async function api(url, method, body) {
+  try {
+    const opts = { method: method || "GET", headers: {"Content-Type":"application/json"} };
+    if (body) opts.body = JSON.stringify(body);
+    const res = await fetch(url, opts);
+    return await res.json();
+  } catch(e) {
+    console.error("API error", url, e);
+    return { success: false, message: "Network error: " + e.message };
+  }
+}
+
+function showAlert(id, type, msg) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = msg;
+  el.className = "alert show " + (type === "ok" ? "ok" : "err");
+}
+
+// ── tabs ─────────────────────────────────────────────────
+function switchTab(name) {
+  const names = ["dashboard","billing","pay","chain","demo"];
+  document.querySelectorAll(".tab").forEach((t,i) => t.classList.toggle("active", names[i]===name));
+  document.querySelectorAll(".panel").forEach(p => p.classList.toggle("active", p.id==="tab-"+name));
+  if (name === "dashboard") loadDashboard();
+  if (name === "chain") loadChain("chain-view");
+}
+
+// ── dark mode ─────────────────────────────────────────────
+function toggleDark() {
+  const cur = document.documentElement.getAttribute("data-theme");
+  document.documentElement.setAttribute("data-theme", cur==="dark"?"light":"dark");
+  destroyCharts();
+  loadDashboard();
+}
+
+// ── charts ────────────────────────────────────────────────
+let pieChart = null, barChart = null;
+
+function destroyCharts() {
+  if (pieChart) { pieChart.destroy(); pieChart = null; }
+  if (barChart) { barChart.destroy(); barChart = null; }
+}
+
+function buildPie(paid, unpaid) {
+  const el = document.getElementById("pieCanvas");
+  const empty = document.getElementById("pie-empty");
+  if (!el) return;
+
+  destroyCharts(); // always destroy before rebuilding
+
+  if (paid === 0 && unpaid === 0) {
+    el.style.display = "none";
+    if (empty) empty.style.display = "block";
+    return;
+  }
+
+  el.style.display = "block";
+  if (empty) empty.style.display = "none";
+
+  pieChart = new Chart(el, {
+    type: "doughnut",
+    data: {
+      labels: ["Paid","Unpaid"],
+      datasets: [{
+        data: [paid, unpaid],
+        backgroundColor: ["#0F6E56","#991F1F"],
+        borderWidth: 0
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: "bottom",
+          labels: { color: getComputedStyle(document.documentElement).getPropertyValue("--text").trim() || "#333", font: { size: 12 } }
+        }
+      },
+      cutout: "62%"
+    }
+  });
+}
+
+function buildBar(labels, values) {
+  const el = document.getElementById("barCanvas");
+  const empty = document.getElementById("bar-empty");
+  if (!el) return;
+
+  if (!barChart) { /* only destroy pie above was enough */ }
+  if (barChart) { barChart.destroy(); barChart = null; }
+
+  if (!labels.length) {
+    el.style.display = "none";
+    if (empty) empty.style.display = "block";
+    return;
+  }
+
+  el.style.display = "block";
+  if (empty) empty.style.display = "none";
+
+  barChart = new Chart(el, {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [{
+        label: "kWh",
+        data: values,
+        backgroundColor: "#185FA5",
+        borderRadius: 6
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color:"#888" }, grid: { display:false } },
+        y: { ticks: { color:"#888" }, beginAtZero: true }
+      }
+    }
+  });
+}
+
+// ── dashboard ─────────────────────────────────────────────
+async function loadDashboard() {
+  const s = await api("/api/stats");
+  if (!s || s.error) return;
+
+  // Update stat cards
+  document.getElementById("s-blocks").textContent = s.total_blocks;
+  document.getElementById("s-rev").textContent    = "Rs." + s.revenue;
+  document.getElementById("s-pend").textContent   = "Rs." + s.pending;
+  document.getElementById("s-unp").textContent    = s.unpaid;
+
+  // Chain badge
+  updateBadge(s.is_valid);
+
+  // Build charts
+  buildPie(s.paid, s.unpaid);
+  buildBar(
+    s.consumer_data.map(c => c.name.split(" ")[0]),
+    s.consumer_data.map(c => c.units)
+  );
+
+  // Consumers table
+  const tblEl = document.getElementById("cons-tbl");
+  if (!s.consumer_data.length) {
+    tblEl.innerHTML = '<p style="font-size:13px;color:var(--muted);">No consumers added yet. Go to the Billing tab.</p>';
+    return;
+  }
+
+  const rows = s.consumer_data.map(c => `
+    <tr>
+      <td style="padding:8px 10px;">${c.id}</td>
+      <td style="padding:8px 10px;">${c.name}</td>
+      <td style="padding:8px 10px;">${c.units} kWh</td>
+      <td style="padding:8px 10px;">Rs.${c.amount}</td>
+      <td style="padding:8px 10px;font-weight:600;color:${c.paid?"var(--green)":"var(--red)"};">${c.paid?"&#10003; PAID":"&#10007; UNPAID"}</td>
+    </tr>`).join("");
+
+  tblEl.innerHTML = `
+    <table class="ctbl">
+      <thead><tr><th>ID</th><th>Name</th><th>Units</th><th>Amount</th><th>Status</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+function updateBadge(valid) {
+  const b = document.getElementById("chain-badge");
+  b.textContent = valid ? "✓ Chain Valid" : "⚠ Chain INVALID";
+  b.className   = "chain-badge " + (valid ? "badge-ok" : "badge-bad");
+}
+
+// ── add reading ───────────────────────────────────────────
+async function addReading() {
+  const id    = document.getElementById("r-id").value.trim();
+  const name  = document.getElementById("r-name").value.trim();
+  const addr  = document.getElementById("r-addr").value.trim();
+  const units = document.getElementById("r-units").value.trim();
+  const month = document.getElementById("r-month").value.trim();
+
+  if (!id || !name || !addr || !units) {
+    showAlert("r-alert","err","Please fill in all fields."); return;
+  }
+
+  document.getElementById("mine-bar").classList.add("show");
+  document.getElementById("bkdown-box").classList.remove("show");
+  document.getElementById("r-alert").className = "alert";
+
+  const d = await api("/api/add_reading","POST",{consumer_id:id, name, address:addr, units, month});
+  document.getElementById("mine-bar").classList.remove("show");
+
+  if (d.success) {
+    showAlert("r-alert","ok",
+      `Block #${d.block.index} mined! Nonce: ${d.block.nonce} | Hash: ${d.block.hash.slice(0,20)}... | Bill: Rs.${d.block.amount}`);
+
+    // Show breakdown
+    const rows = d.block.breakdown.map(s =>
+      `<tr><td>${s.units}</td><td>Rs.${s.rate}</td><td>Rs.${s.cost}</td></tr>`).join("");
+    document.getElementById("bkdown-body").innerHTML = rows;
+    document.getElementById("bkdown-total").textContent = "Rs." + d.block.amount;
+    document.getElementById("bkdown-box").classList.add("show");
+
+    // Clear inputs
+    ["r-id","r-name","r-addr","r-units","r-month"].forEach(i => document.getElementById(i).value = "");
+
+    // Refresh dashboard immediately
+    loadDashboard();
+  } else {
+    showAlert("r-alert","err", d.message || "Something went wrong.");
+  }
+}
+
+// ── history ───────────────────────────────────────────────
+async function loadHistory() {
+  const id = document.getElementById("hist-id").value.trim();
+  if (!id) { document.getElementById("hist-out").innerHTML = '<p style="font-size:12px;color:var(--red);">Enter a Consumer ID first.</p>'; return; }
+
+  const d = await api("/api/history/" + encodeURIComponent(id));
+
+  if (!d.history || !d.history.length) {
+    document.getElementById("hist-out").innerHTML = '<p style="font-size:12px;color:var(--muted);margin-top:6px;">No history found for this ID.</p>';
+    return;
+  }
+
+  const rows = d.history.map(h => `
+    <tr>
+      <td>${h.month || "-"}</td>
+      <td>${h.units} kWh</td>
+      <td>Rs.${h.amount}</td>
+      <td style="font-weight:600;color:${h.paid?"var(--green)":"var(--red)"};">${h.paid?"PAID":"UNPAID"}</td>
+    </tr>`).join("");
+
+  document.getElementById("hist-out").innerHTML = `
+    <table class="ctbl" style="margin-top:6px;">
+      <thead><tr><th>Month</th><th>Units</th><th>Amount</th><th>Status</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+// ── view bill ─────────────────────────────────────────────
+let lastBill = null;
+async function viewBill() {
+  const id = document.getElementById("p-id").value.trim();
+  if (!id) { showAlert("p-alert","err","Enter a Consumer ID"); return; }
+
+  const d = await api("/api/get_bill/" + encodeURIComponent(id));
+  if (!d.success) { showAlert("p-alert","err", d.message); return; }
+
+  const b = d.bill;
+  lastBill = { ...b, id };
+
+  document.getElementById("b-name").textContent  = b.name;
+  document.getElementById("b-addr").textContent  = b.address;
+  document.getElementById("b-month").textContent = b.month || "-";
+  document.getElementById("b-units").textContent = b.units + " kWh";
+  document.getElementById("b-amt").textContent   = "Rs." + b.amount;
+
+  const st = document.getElementById("b-status");
+  st.textContent = b.paid ? "PAID ✓" : "UNPAID";
+  st.className   = "rval " + (b.paid ? "paid-y" : "paid-n");
+
+  document.getElementById("bill-box").classList.add("show");
+  document.getElementById("p-alert").className = "alert";
+}
+
+// ── pay bill ──────────────────────────────────────────────
+async function payBill() {
+  const id = document.getElementById("p-id").value.trim();
+  if (!id) { showAlert("p-alert","err","Enter a Consumer ID"); return; }
+
+  const d = await api("/api/pay_bill","POST",{ consumer_id:id });
+  showAlert("p-alert", d.success?"ok":"err",
+    d.success ? `Payment block #${d.block.index} mined! Nonce: ${d.block.nonce}` : d.message);
+  if (d.success) { viewBill(); loadDashboard(); }
+}
+
+// ── check consumer ────────────────────────────────────────
+async function checkConsumer() {
+  const id = document.getElementById("ck-id").value.trim();
+  if (!id) return;
+  const d = await api("/api/get_bill/" + encodeURIComponent(id));
+  if (!d.success) { alert(d.message); return; }
+  const b = d.bill;
+  document.getElementById("ck-name").textContent  = b.name;
+  document.getElementById("ck-units").textContent = b.units + " kWh";
+  document.getElementById("ck-amt").textContent   = "Rs." + b.amount;
+  document.getElementById("ck-month").textContent = b.month || "-";
+  const st = document.getElementById("ck-status");
+  st.textContent = b.paid ? "PAID ✓" : "UNPAID";
+  st.className   = "rval " + (b.paid?"paid-y":"paid-n");
+  document.getElementById("ck-box").classList.add("show");
+}
+
+// ── print ─────────────────────────────────────────────────
+function printBill() {
+  if (!lastBill) { alert("View a bill first."); return; }
+  document.getElementById("pr-name").textContent  = lastBill.name;
+  document.getElementById("pr-addr").textContent  = lastBill.address;
+  document.getElementById("pr-month").textContent = lastBill.month || "-";
+  document.getElementById("pr-units").textContent = lastBill.units + " kWh";
+  document.getElementById("pr-amt").textContent   = "Rs." + lastBill.amount;
+  document.getElementById("pr-status").textContent = lastBill.paid ? "PAID" : "UNPAID";
+  document.getElementById("pr-hash").textContent  = "Verified on Blockchain — " + new Date().toLocaleString();
+  document.getElementById("parea").style.display  = "block";
+  window.print();
+  setTimeout(() => { document.getElementById("parea").style.display = "none"; }, 1000);
+}
+
+// ── blockchain viewer ─────────────────────────────────────
+async function loadChain(containerId) {
+  const d = await api("/api/chain");
+  const box = document.getElementById(containerId);
+  if (!box) return;
+
+  updateBadge(d.is_valid);
+
+  const banner = d.is_valid
+    ? `<div class="banner banner-ok">&#10003; All ${d.length} blocks are valid — chain is intact</div>`
+    : `<div class="banner banner-bad">&#9888; Chain INVALID — tampering detected at block #${d.bad_index}!</div>`;
+
+  let html = banner;
+  const rev = [...d.chain].reverse();
+
+  rev.forEach((block, idx) => {
+    const type  = block.data.type || "genesis";
+    const isBad = !d.is_valid && d.bad_index > 0 && block.index >= d.bad_index;
+    const cls   = isBad ? "tampered" : (type==="METER_READING"?"reading":type==="PAYMENT"?"payment":"genesis");
+    const pill  = isBad ? "pt" : (type==="METER_READING"?"pr":type==="PAYMENT"?"pp":"pg");
+    const label = isBad ? "TAMPERED" : (type==="METER_READING"?"Meter Reading":type==="PAYMENT"?"Payment":"Genesis");
+
+    let detail = "";
+    if (type==="METER_READING") detail=`<div style="font-size:12px;margin:5px 0;"><b>${block.data.name}</b> &nbsp;|&nbsp; ${block.data.units} kWh &nbsp;|&nbsp; Rs.${block.data.amount_due} &nbsp;|&nbsp; ${block.data.month||""}</div>`;
+    if (type==="PAYMENT") detail=`<div style="font-size:12px;margin:5px 0;"><b>${block.data.name}</b> paid Rs.${block.data.amount_paid} on ${block.data.paid_at}</div>`;
+
+    const arrow = idx < rev.length-1 ? `<div class="arrow-down">&#8681;</div>` : "";
+
+    html += `
+      <div class="block-wrap">
+        <div class="block-item ${cls}">
+          <div class="bh">
+            <span class="bnum">Block #${block.index}</span>
+            <span style="display:flex;gap:6px;align-items:center;">
+              <span class="nonce">nonce: ${block.nonce}</span>
+              <span style="font-size:11px;color:var(--muted);">${block.timestamp}</span>
+              <span class="bpill ${pill}">${label}</span>
+            </span>
+          </div>
+          ${detail}
+          <div class="hashline">Hash: <b style="color:var(--blue);">${block.hash}</b></div>
+          <div class="hashline">Prev: ${block.previous_hash}</div>
+        </div>
+        ${arrow}
+      </div>`;
+  });
+
+  box.innerHTML = html;
+}
+
+// ── tamper demo ───────────────────────────────────────────
+async function tamperChain() {
+  const idx   = parseInt(document.getElementById("t-idx").value) || 1;
+  const units = parseInt(document.getElementById("t-units").value) || 5;
+  const d     = await api("/api/tamper","POST",{ block_index:idx, new_units:units });
+  showAlert("t-alert","err", d.message);
+  if (d.success) { updateBadge(false); await loadChain("demo-view"); }
+}
+
+async function validateChain() {
+  const d = await api("/api/validate");
+  showAlert("v-alert", d.is_valid?"ok":"err", d.message);
+  updateBadge(d.is_valid);
+  await loadChain("demo-view");
+}
+
+// ── init ──────────────────────────────────────────────────
+window.addEventListener("load", () => {
+  loadDashboard();
+  // auto-refresh stats every 6 seconds
+  setInterval(async () => {
+    const s = await api("/api/stats");
+    if (s && !s.error) updateBadge(s.is_valid);
+  }, 6000);
+});
+</script>
+</body>
+</html>
